@@ -1,0 +1,99 @@
+#! /bin/sh -x
+#
+#  This script makes the reference calibration file for SenseMon, GainMon
+#  etc. (ReferenceCalibrationDarmErr_H1.xml).
+#
+#  The CAL_DARM sensing transfer function is generated to match the whitening 
+#  filters, i.e.
+# 
+#     "zpk([1;1;1;1;1],[100;100;100;100;100],4000)" 
+#
+#  and the open loop gain is set to 1.0 because no feedback is needed. 
+#
+cat > ER6v00-header.xml <<EOF
+<?xml version="1.0"?>
+<!DOCTYPE LIGO_LW SYSTEM "http://ldas-sw.ligo.caltech.edu/doc/ligolwAPI/html/ligolw_dtd.txt">
+<LIGO_LW>
+  <LIGO_LW>
+    <Param Name="Channel">H1:OAF-CAL_DARM_DQ</Param>
+    <Param Name="Comment">H1 CAL_DARM calibration (whitening)</Param>
+    <Time Name="StartTime" Type="GPS">1070000000</Time>
+    <Param Name="Duration" Type="double">939999999</Param>
+    <Time Name="CalibrationTime" Type="GPS">108000000</Time>
+    <Array Name="CavityFactor" Type="float">
+      <Dim Name="GPS">20</Dim>
+      <Dim Name="GPS_Value">2</Dim>
+      <Stream Type="Local" Delimiter=" ">
+        1030000000 1.0
+        1040000000 1.0
+        1050000000 1.0
+        1060000000 1.0
+        1070000000 1.0
+        1080000000 1.0
+        1090000000 1.0
+        1100000000 1.0
+        1110000000 1.0
+        1120000000 1.0
+        1130000000 1.0
+        1140000000 1.0
+        1150000000 1.0
+        1160000000 1.0
+        1170000000 1.0
+        1180000000 1.0
+        1190000000 1.0
+        1200000000 1.0
+        1210000000 1.0
+        1220000000 1.0
+      </Stream>
+    </Array>
+    <Array Name="OLoopFactor" Type="float">
+      <Dim Name="GPS">20</Dim>
+      <Dim Name="GPS_Value">2</Dim>
+      <Stream Type="Local" Delimiter=" ">
+        1030000000 1.0
+        1040000000 1.0
+        1050000000 1.0
+        1060000000 1.0
+        1070000000 1.0
+        1080000000 1.0
+        1090000000 1.0
+        1100000000 1.0
+        1110000000 1.0
+        1120000000 1.0
+        1130000000 1.0
+        1140000000 1.0
+        1150000000 1.0
+        1160000000 1.0
+        1170000000 1.0
+        1180000000 1.0
+        1190000000 1.0
+        1200000000 1.0
+        1210000000 1.0
+        1220000000 1.0
+      </Stream>
+    </Array>
+  </LIGO_LW>
+</LIGO_LW>
+EOF
+#
+#  Generate whitening filter xfer function
+#
+#  Original whitening filter
+# ./xfer_func "zpk([1;1;1],[100;100;100],4000,'n')"
+./xfer_func "zpk([1;1;1;1;1],[100;100;100;100;100],4000,'n')"
+mv transfer.txt H-H1_ER6_DEWHITEN_CAV.txt
+#
+#  OLG is zero (no feedback)
+cat > H-H1_ER6_DEWHITEN_OLG.txt <<EOF
+0 0 0
+1000 0 0
+2000 0 0
+3000 0 0
+4000 0 0
+EOF
+
+mkcalibfile -c H1:OAF-CAL_DARM_DQ -x ER6v00-header.xml -fmax 4000 \
+	-olg H-H1_ER6_DEWHITEN_OLG.txt \
+	-cav H-H1_ER6_DEWHITEN_CAV.txt \
+	-o ReferenceCalibrationDarmCal_H1.xml
+#

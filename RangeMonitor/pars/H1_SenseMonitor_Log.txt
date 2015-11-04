@@ -1,0 +1,2 @@
+SenseMonitor MESSAGE: SenseMonitor is finished after 0 strides.
+Data environment has terminated with Term/Attn/finish/EOF =0/0/0/1

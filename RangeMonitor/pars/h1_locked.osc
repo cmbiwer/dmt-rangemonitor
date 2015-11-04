@@ -1,0 +1,32 @@
+#
+#  Lock state as defined by Stefan
+# L1:IFO_LOCKED bitand "L1:ODC-GRD_ODC_CHANNEL_OUT_DQ" mask=0x40 fraction=1.0
+#
+#  As of about Sep 3 2014, the L1:ODC-GRD_ODC_CHANNEL_OUT_DQ channel seems 
+#  to be broken. The followin is basically along the lines of suggestion by
+#  T.J. to allow all locked stretches (RF or DC) added Sep 11, 2014
+#
+# include "SegGener_LSC_LHO.osc"
+# H1:IFO_LOCKED boolean "H1:DMT_XARM_LOCK_s & H1:DMT_YARM_LOCK_s"
+#
+#  Guardian state tests from Jamie 2/9/15
+#
+#H1_GUARDIAN_RUN  valuerange "H1:GRD-ISC_LOCK_MODE"    lo=2 hi=3     fraction=1
+#H1_GUARDIAN_ERR  valueabove "H1:GRD-ISC_LOCK_ERROR"   threshold=0   fraction=0
+#H1_GUARDIAN_LOCK valueabove "H1:GRD-ISC_LOCK_STATE_N" threshold=409 fraction=1
+#H1:IFO_LOCKED  boolean "H1_GUARDIAN_RUN & !H1_GUARDIAN_ERR & H1_GUARDIAN_LOCK"
+#
+#  Guardian state tests from Jamie 2/26/15
+#
+#H1_GUARDIAN_OPR  valuerange "H1:GRD-ISC_LOCK_OP"      lo=2 hi=3     fraction=1
+H1_GUARDIAN_RUN  valuerange "H1:GRD-ISC_LOCK_MODE"    lo=0 hi=2     fraction=1
+H1_GUARDIAN_ERR  valueabove "H1:GRD-ISC_LOCK_ERROR"   threshold=0   fraction=0
+H1_GUARDIAN_LOCK valueabove "H1:GRD-ISC_LOCK_STATE_N" threshold=409 fraction=1
+#H1:IFO_LOCKED  boolean "H1_GUARDIAN_OPR & H1_GUARDIAN_RUN & !H1_GUARDIAN_ERR & H1_GUARDIAN_LOCK"
+#
+#  Ignore the OP channel until it is available.
+H1:IFO_LOCKED  boolean "H1_GUARDIAN_RUN & !H1_GUARDIAN_ERR & H1_GUARDIAN_LOCK"
+#
+#  Eventually , this will work
+#
+# H1:IFO_LOCKED valueabove "H1:GRD-ISC_LOCK_OK" threshold=0 fraction=1

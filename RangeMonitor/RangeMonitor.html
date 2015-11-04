@@ -1,0 +1,395 @@
+<!doctype html public "-//w3c//dtd html 4.0 transitional//en">
+<html>
+<head>
+   <meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1">
+   <meta name="GENERATOR" content="Mozilla/4.77 [en] (X11; U; Linux 2.4.9-6smp i686) [Netscape]">
+   <title>SenseMonitor</title>
+</head>
+<body text="#000000" bgcolor="#FFFFEA" link="#0000EE" vlink="#551A8B" alink="#FF0000">
+
+
+<blockquote>
+<h1>
+<a href="#DOC.DOCU"><img SRC="down.gif" BORDER=0 ></a> 
+SenseMonitor (v5.0):  A Binary-Inspiral Sensitivity Monitor for the DMT
+</h1>
+
+SenseMonitor is a DMT monitor which estimates the range to which the  
+interferometer is sensitive (with SNR > 8) to a standard candle consisting of  
+the inspiral of two 1.4-solar-mass neutron stars.  
+By using online data to estimate this range, SenseMonitor can provide quick feedback to 
+the operators on the performance of the interferometer.
+<p>
+To obtain its data-quality measurement, SenseMonitor relies on the fact that  
+an interferometer with one-sided noise power spectrum PSD(f) is sensitive to  
+binary inspiral events in a volume of space proportional to 
+<br></div><center><img src=vol_eqn.jpg width=630 height=116><br></center><div> 
+The effective range of the interferometer is defined as the radius of a sphere 
+of the same volume; i.e., this range is averaged over all sky positions and 
+binary orientations.  To convert SenseMonitor average ranges to the 
+optimally oriented, optimally positioned range used by the inspiral group, 
+multiply the SenseMon range by ~ 9/4 ~ 2.25 ~ sqrt(5).)
+
+<p>
+SenseMonitor evaluates the effective range by computing the AS_Q-strain 
+transfer function (the ``calibration'' or ``response'' function) 
+and applying it to AS_Q data to estimate the strain noise 
+power spectrum PSD(f) of the gravitational-wave channel.  
+SenseMonitor then reports the following:
+<ul>
+  <li>the current range estimate;
+  <li>the current amplitude of the calibration line 
+  (used to track the interferometer's response function);
+  <li>the current values of the calibration parameters `alpha' and `beta' 
+  (see the calibration section below). 
+</ul>
+The principle forms of output are:
+<ul>
+  <li> a summary web page and shorter `revolver' page available through the 
+  <a href="http://marble.ligo-wa.caltech.edu/dmt/mainPage.html">
+  CDS homepage</a>;
+  <li> the DMTViewer;
+  <li> trend files.
+</ul>
+</blockquote>
+
+
+
+<blockquote>
+<h2>SenseMonitor Output</h2>
+
+SenseMonitor produces the following output at regular intervals 
+(normally once per minute):
+
+
+<H3>Graphical: DMTViewer Plots</H3>
+
+The following time series are reported to the DMTViewer (the name of the 
+corresponding channel in the trend files is in parentheses):
+<ul>
+
+  <li>
+  <b>
+  `SNSM EFFECTIVE RANGE (MPC)' (DMT-SNSM_EFFECTIVE_RANGE_MPC): 
+  </b><br>
+  The average range at which the interferometer can detect the 
+  inspiral of a 1.4-1.4 solar-mass neutron-star binary with SNR > 8. 
+
+  <li>
+  <b>
+  `SNSM CAL LINE AMPL (ASQ)' (DMT-SNSM_CAL_LINE_AMPL_ASQ)
+  </b><br> 
+  The amplitude of the calibration line as seen in the AS_Q channel.  
+  (This is the peak amplitude, which is sqrt(2) times 
+  the rms amplitude.)
+
+  <li>
+  <b>
+  `SNSM CAL CAV FAC (ALPHA)' (DMT-SNSM_CAL_CAV_FAC)
+  </b><br> 
+  The value of the calibration parameter alpha.  This quantity is computed using
+  the measured calibration-line amplitudes in the AS_Q and excitation (injection) 
+  channels, beta as measured from the DARM channels, and the user-supplied 
+  reference calibration data.
+
+  <li>
+  <b>
+  `SNSM CAL OLOOP FAC (ALPHAxBETA)' (DMT-SNSM_CAL_OLOOP_FAC)
+  </b><br> 
+  The product of the calibration parameters alpha*beta.
+  This quantity is computed using
+  the measured calibration-line amplitudes in the AS_Q and excitation (injection) 
+  channels, beta as measured from the DARM channels, and the user-supplied 
+  reference calibration data.
+</ul>
+
+
+The following frequency spectra are reported to the DMTViewer only:
+<ul>
+
+  <li>
+  <b>
+  `SNSM CALIBRATED NOISE SPECTRUM'
+  </b><br>
+  This is the strain amplitude noise spectral density (1/sqrt(Hz)) used by SenseMonitor 
+  to compute its range estimate.
+
+  <li>
+  <b>
+  `SNSM RANGE INTEGRAND (ARB UNITS)'
+  </b><br> 
+  This is integrand of the integral that gives the range estimate (see the top of this page):
+  <PRE>
+                                  f^{-7/3}
+    range_integrand  =  const x  ----------  , 
+                                   PSD(f)
+
+    range  =  [ \int df  range_integrand ]^{1/2}
+  </PRE>  
+  So, the range is proportional to the square root of the 
+  area under the range_integrand(f) curve (on a linear-linear plot!). 
+  This can be handy for identifying good and bad noise bands.
+</ul>
+
+
+<h4>Interpreting Plots:</h4> 
+
+SenseMonitor reports zero or negative values for all of these channels under 
+special conditions. 
+<ul>
+
+  <li>
+  <b>All Values = 0: </b>
+  The interferometer is not in lock. 
+  (SenseMonitor typically requires that the interferometer be running in strict
+  common_mode for it to calculate a range.  The precise condition is specified  
+  with the -OSCcond option.) 
+
+  <li>
+  <b>All Values = -1 or -2: </b>
+  The data for this time is missing.  This could be due to a "data dropout",  
+  or because SenseMonitor was not running for the period in question.  
+  (Check to see if other monitors had dropouts, or look at the SenseMon Error 
+  log file.)
+  <p>
+  When restarted, SenseMonitor fills in the 12hr DMTViewer history with 
+  data stored from 
+  the previous run of the program.  If no such file is found, 
+  SenseMonitor initializes its plots with '-1's.  
+  Otherwise, SenseMonitor puts
+  a '-2' in the latest data spot as a tag to indicate 
+  that the preceeding data was read from a file.
+
+  <li>
+  <b>Alpha = 0 (only):</b>
+  The alpha parameter is calculated from the calibration line, which sometimes 
+  is not available.  If the computed alpha is not real and positive (which may 
+  happen if the calibration line dies) then alpha is reset to zero.  The range 
+  estimate is then made using the reference response function (alpha=1=beta). 
+
+</ul>
+
+
+<H3>Html and data files</H3> 
+
+SenseMonitor writes summary log files and other useful data products.
+<ul>
+
+  <li>
+  <b><a href="https://marble.ligo-wa.caltech.edu/dmt/Monitors/spiM.html">GDS SPI page</a></b>.
+  The SenseMonitor links contain summary information, including the range estimates 
+  averaged over the last 1, 5, and 15 strides.  There are also links to these error and log pages:
+
+  <ul>
+    <li>
+    <b>Errors:</b>
+    Shows SenseMonitor's error messages.  The most important 
+    error messages are about missing data.  If lots of data has been lost recently, 
+    it is likely that the computer running SenseMonitor is overloaded.  Contact your 
+    DMT expert.
+    <li>
+    <b>Monitor Output:</b>
+    Details of the current run of SenseMonitor, including command line arguments used, 
+    and the range and calibration histories.  Useful for troubleshooting problems.
+    <li>
+    <b>Cumulative Monitor Output:</b>
+    Concatenated log files from ALL runs of SenseMonitor.  These can be very large.
+  </ul>
+
+  <li>
+  <B>Other:</b>  The following files are by default written to 
+  the directory specified by the environment variable $DMTHTMLOUT (set to 
+  point to a subdirectory of $GDS_APACHE/monitor_reports/ on sand and delaronde).  
+  If this environment variable is not set or if the -local option 
+  is used, these files are placed in the local directory instead. 
+
+  <ul>
+    <li>
+    <b>Web Pages:</b> The SPI page html files live here.  The top page is   
+    index.html;  &lt;IFO>_SenseMonitor_Summary.revolver.html is an abbreviated verison.
+    <li>
+    <b>2-Week Summary:</b>
+    The file &lt;IFO>_SenseMonitor_summary.txt contains a  
+    two-week summary of the range averaged over 1000-second intervals. 
+    <li>
+    <b>Calibrated Noise Power:</b>
+    Every 1000 seconds, if the IFO is locked, 
+    the current calibrated (strain) noise power spectrum is written to the ASCII file 
+    &lt;IFO>_CalPSD_GPS:xxxxxxxxx.txt (eg, L1_CalPSD_GPS:715580020.txt).
+    The latest plots are available from the homepage of the current run.
+    <li>
+    <b>Trends:</b>
+    Every hour a trend file is produced showing the minute trends for each of the 
+    quantities sent to the DMTViewer.  These are available at the sites through LDAS.
+  </ul>
+
+</ul>
+</blockquote>
+
+
+
+<blockquote>
+<h2>Running SenseMonitor</h2>
+<p>SenseMonitor is managed by the Process Manager, and so it should 
+always be running at the sites.  If it is missing, please contact 
+<A HREF="mailto:patrick.sutton@ligo.org">Patrick Sutton</A> or  
+<A HREF="mailto:john.zweizig@ligo.org">John Zweizig</A>.  
+<p>
+The standard way to start SenseMonitor is 
+<pre>
+     SenseMonitor -config &lt;file_name>
+</pre>
+where  &lt;file_name> is a configuration file.  
+Up-to-date configuration files are usually available 
+on the dmt machines (sand, delaronde, etc) 
+as ~ops/pars/SenseMonitor_L1.conf, etc.
+A sample configuration file for H1 is 
+<pre>
+    -OSCfile  StateVector.conf
+    -OSCcond Both_arms_locked_strict_cm 
+    -xmlfile ReferenceCalibration_H1.xml
+    -fmin 30.0
+    -trend H1
+</pre>
+The last entry in the configuration file must be one of H1, H2, or L1.  
+The remaining arguments (which may be invoked in any order) are listed below.  
+Arguments in red are <font color='red'>required</font>.<br><br>
+<pre>
+-fmax #         Specify maximum frequency to include in range estimate.
+                Default 1400Hz.
+
+-fmin #         Specify minimum frequency to include in range estimate.
+                Default 20Hz.
+
+-h, --help      Print usage information, then exit.
+
+-local          Run in local mode.  All output files are dumped in the local directory
+                instead of to the default directory specified by the 
+                environment variable $DMTHTMLOUT.  The plain-text log 
+                file is renamed &lt;GPS_Start_Time>.log.
+
+-logfile &lt;name> Name plain-text version of log file &lt;name>.  Only works if
+                -local option is also selected.  Default filename is
+                &lt;GPS_start_time>.log (-local mode) or &lt;IFO>_SenseMonitor_CumLog.txt
+                (otherwise).
+
+-max #          Specify maximum number of strides to process before program
+                exits.
+
+-n #            Specify number of sections to divide data into for calculating 
+		the noise power spectrum.  The 'stride' variable must be a 
+                multiple of this number.  Default 15.
+<font color="red">
+-OSCfile &lt;file> REQUIRED.  Specify the OSC configuration file defining the
+                various operating conditions for the interferometer. 
+                (If not specified, SenseMonitor will attempt to open
+                $SENSEMONITOR_OSCCONF/SenseMonitor_LockLoss.conf,
+                then ./SenseMonitor_LockLoss.conf.)  SenseMonitor will exit
+                if no OSC configuration file can be found.
+</font> 
+-OSCcond &lt;cond> Specify the OSC (operating state condition) for which 
+                SenseMonitor will compute range estimates.  Default is 
+                SV_IFO_UP.
+
+-screen         Update and error messages are sent to the screen instead of
+                to the default files &lt;IFO>_SenseMonitor_Log.txt and 
+                &lt;IFO>_SenseMonitor_Errors.txt.
+
+-stride #       Specify length in seconds of data to use for each range estimate.  
+                Default 60.
+
+-trend          Write range and calibration data to trend files as minute trends.  
+                When writing trends it is recommended that `stride' be a factor 
+                of 60 (eg: 15, 30, 60).
+
+-window &lt;type>  Specify data window type for power spectrum estimation, where
+                &lt;type> is one of:
+                  `hanning' for Hanning window,
+                  `blackman' for Blackman window,
+                  `flattop' for FlatTop window (NOT RECOMMENDED),
+                  `hamming' for Hamming window (NOT RECOMMENDED),
+                  `square' for no window (NOT RECOMMENDED).
+                Default Hanning.
+<font color="red">
+-xmlcal <file>  REQUIRED. Use dynamical calibration based on a reference 
+                calibration file <file>. 
+</font>                 
+</pre><br>
+ 
+
+<h3>Calibration</h3>
+
+SenseMonitor estimates the strain noise spectrum from the AS_Q data 
+following the calibration notes of Gonzalez et al (2002, 2003).  
+All actual calibration calculations are performed by the FDEasyCalibrate 
+class, which requires as input a specially formatted file containing 
+reference calibration information.  These reference calibration files 
+will be produced by the calibration team.  
+The only point that might interest the casual user is that this 
+calibration data should be linearly sampled over a frequency range 
+larger than [fmin,fmax] Hz (see -fmin, -fmax options) and not 
+including 0 Hz or 4096 Hz.  <font color='red'>SenseMonitor 
+will exit if the calibration data does not cover [fmin,fmax] Hz.</font>
+
+
+
+<h3>Operating State Condition (OSC)</h3>
+
+SenseMonitor requires a file defining the condition under which range estimates 
+will be computed.  A good choice for OSC (-OSCcond) is <b>Both_arms_locked_strict_cm</b>.   
+In this case the detector is required to be in common mode, 
+but not necessarily in science mode.  
+A good choice for the definitions file (-OSCfile) is D. Chin's 
+/export/home/ops/pars/LockLoss.conf, 
+which contains up-to-date definitions of standard states.  
+<p>
+The user may specify an alternative location and file name at launch.  
+Otherwise, SenseMonitor will search for the file SenseMonitor_LockLoss.conf, first  
+in the directory specified by $SENSEMONITOR_OSCCONF and then in the
+local directory.  You can (re-)set the environment variable SENSEMONITOR_OSCCONF 
+using a command like <pre>     setenv SENSEMONITOR_OSCCONF  <i>directory_path</i></pre>
+
+
+
+<h2>Known Bugs</h2>
+
+<ol>
+
+<li>
+None.
+
+</ol>
+
+
+<h2>Contact Info</h2>
+<p>Comments, queries, and suggestions regarding any aspect of SenseMonitor
+are welcome; please email the authors.
+<br>
+<table>
+<tr>
+<td><b>Authors:</b></td> 
+<td><A HREF="mailto:kcs149@psu.edu">Kevin C. Schlaufman</A></td>
+</tr>
+<tr>
+<td></td>
+<td><A HREF="mailto:psutton@ligo.caltech.edu">Patrick J. Sutton</A></td>
+</tr>
+<tr>
+<td><b>Code Version:</b></td>
+<td>5.0; last modified  Oct. 23 2004.</td>
+</tr>
+<tr>
+<td><b>Documentation:</b></td>
+<td>last modified  Oct. 23 2004.</td>
+</tr>
+</table>
+<br>
+<hr>
+<br>
+<div align=right>
+<a href="http://www.ligo.caltech.edu">Laser Interferometer 
+Gravitational-wave Observatory</a><img src=ligo_logo.gif width=80></div>
+<br><br>
+</blockquote>
+</BODY>
+</HTML>

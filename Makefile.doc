@@ -1,0 +1,212 @@
+
+#-----------------------------------------------------------------------------
+# DMT Monitor Documentation
+# Makefile
+# Author: John Zweizig
+
+SHELL		= /bin/sh
+
+#--- Configuration -----------------------------------------------------------
+
+ConfPath	:= ../config/
+include $(ConfPath)Makefile.config
+
+#--- Machine dependent -------------------------------------------------------
+
+include $(ConfPath)Makefile.$(ARCH)
+
+#--- Paths -------------------------------------------------------------------
+
+BinPath		:= ../bin/
+LibPath		:= ../lib/
+IncPath		:= ../include/
+DictPath	:= dict/
+DocPath		:= ../doc/
+ScriptPath	:= $(shell mkdir -p $(BinPath) ; cd $(BinPath) ; pwd)/
+
+#--- Documentation -----------------------------------------------------------
+
+AUTHOR          := John Zweizig
+HTMLTITLE       := DMT Monitors
+HEADING         := DMT Monitors
+KEYWORDS        := LIGO GDS DMT DatEnv Monitor
+MAINTAINER      := zweizig_j@ligo-wa.caltech.edu
+DOCPATH         := $(DocPath)Monitors
+DOCANCHOR       := monitor.doc
+
+#--- Files -------------------------------------------------------------------
+
+DIRS		:= absGlitch BicoMon bigStuff BitTest blrms burstMon \
+		   CorrMon DEnvCorr dewarMon DSSBldr DTracker DuoTone \
+		   eqMon fastGlitch GainMon glitchMon hMon HistCompr \
+		   InspiralMon IRIG-B kleineWelle LIGOLwMon LineMonitor \
+		   Listen LockLoss LscMonitor magGlitch MTLineMon MultiVolt \
+		   NdasWriter NoiseFloorMonitor OmegaMon PhotonCal PlaneMon \
+		   PSLmon PTmon PulsarMon RangeMonitor RayleighMonitor rockIFO SegGener \
+		   SenseMonitor ServoMon ShapeMon sigma Slice2 SpecMon \
+		   SpectrumArchiver SpectrumFold Station StochMon \
+		   StrainbandsMon suspensionMon tid TimeMon TrigDsply \
+		   TrigSpec WaveMon
+
+MONTABLE	:= $(DOCPATH)/MonTable.html
+
+EXTRAMONS	:= blrms/blrms_monitor
+
+EXTRAIMGS	:= MultiVolt/T000104-00.pdf PlaneMon/PlaneMonDoc.pdf
+
+#-----------   All potential monitor names in form <name>/<name>
+SRCHLIST	:= $(foreach dir, $(DIRS), $(dir)/$(dir)) $(EXTRAMONS)
+
+#-----------   All html files of form <name>/<name>.html
+HTMLSRC		:= $(subst .html, , $(wildcard $(SRCHLIST:%=%.html)))
+
+#-----------   Look for PDF files as <name>/<name>.pdf
+PDFSRC		:= $(subst .pdf, , $(filter-out $(HTMLSRC:%=%.pdf), \
+			$(wildcard $(SRCHLIST:%=%.pdf))))
+
+#-----------   Assume doc++ in all other headers.
+TEXSRC		:= $(subst .tex, , $(filter-out $(HTMLSRC:%=%.tex) \
+					        $(PDFSRC:%=%.tex), \
+			$(wildcard $(SRCHLIST:%=%.tex))))
+
+#-----------   Assume doc++ in all other headers.
+DOCXXSRC	:= $(subst .hh, , $(filter-out $(HTMLSRC:%=%.hh) \
+					       $(PDFSRC:%=%.hh)  \
+					       $(TEXSRC:%=%.hh), \
+			$(wildcard $(SRCHLIST:%=%.hh))))
+
+DOCXXMON	:= $(notdir $(DOCXXSRC))
+
+DOCXXDOCS	:= $(DOCXXMON:%=$(DOCPATH)/%/index.html)
+
+HTMLMONS	:= $(notdir $(HTMLSRC))
+HTMLDOCS	:= $(join $(HTMLMONS:%=$(DOCPATH)/%), $(HTMLMONS:%=/%.html))
+HTMLINKS	:= $(HTMLMONS:%=$(DOCPATH)/%/index.html)
+
+PDFDOCS		:= $(join $(patsubst %, $(DOCPATH)/%, $(notdir $(PDFSRC))), \
+			  $(patsubst %, /%.pdf,       $(notdir $(PDFSRC))))
+
+TEXMONS		:= $(notdir $(TEXSRC))
+TEXDOCS		:= $(join $(TEXMONS:%=$(DOCPATH)/%), $(TEXMONS:%=/%.html))
+HTMLINKS	+= $(TEXMONS:%=$(DOCPATH)/%/index.html)
+
+#----------	All monitor sources in the form <dir>/<monitor>
+MONSRC		:= $(DOCXXSRC) $(HTMLSRC) $(PDFSRC) $(TEXSRC)
+
+#----------	All monitor names
+MONITORS	:= $(notdir $(MONSRC))
+
+DIRECTORIES	:= $(DOCPATH) $(addprefix $(DOCPATH)/, $(MONITORS))
+
+MONSYNOPS	:= $(subst .synopsis, , \
+		   $(notdir $(wildcard $(addsuffix .synopsis, $(MONSRC)))))
+
+SYNOPSIS	:= $(foreach m, $(MONSYNOPS), $(DOCPATH)/$m/$m.synopsis) 
+
+MONAUTHFILES	:= $(subst .author, , \
+		   $(notdir $(wildcard $(addsuffix .author, $(MONSRC)))))
+
+MONAUTHOR	:= $(foreach m, $(MONAUTHFILES), $(DOCPATH)/$m/$m.author) 
+
+MONDCCDOC	:= $(subst .dccdoc, , \
+		   $(notdir $(wildcard $(addsuffix .dccdoc, $(MONSRC)))))
+
+DCCDOC		:= $(foreach m, $(MONDCCDOC), $(DOCPATH)/$m/$m.dccdoc)
+
+IMGSOURCE	:= $(foreach d, $(DIRS), $(wildcard $d/*.jpg $d/*.JPG \
+						    $d/*.gif $d/*.eps \
+							     $d/*.png)) \
+		   $(EXTRAIMGS)
+
+IMAGES		:= $(IMGSOURCE:%=$(DOCPATH)/%)
+
+SCRIPTS		:= $(SCRIPTS:%=$(ScriptPath)%)
+
+INCLUDES=
+
+HEADERS=
+
+PGNAMES		:= $(filter-out blrms bigStuff, $(DIRS)) \
+		   blrms_monitor findStuff getStuff tidd tidclass CorrMonRoot
+PROGRAMS	:= $(PGNAMES:%=$(BinPath)%$(EXEEXT))
+
+docs:	$(DIRECTORIES) $(DOCXXDOCS) $(HTMLDOCS) $(HTMLINKS) $(PDFDOCS) \
+	$(TEXDOCS) $(SYNOPSIS) $(MONAUTHOR) $(DCCDOC) $(MONTABLE) \
+	$(IMAGES)
+
+#--- Document Dependencies ---------------------------------------------------
+
+-include Makefile.docdepend
+
+#--- Ad hoc dependencies -----------------------------------------------------
+
+#--- Rules -------------------------------------------------------------------
+# include $(ConfPath)Makefile.rules
+# include $(ConfPath)Makefile.doc
+
+$(DIRECTORIES):
+	mkdir -p $@
+
+$(MONTABLE):	 $(DOCXXDOCS) $(SYNOPSIS) $(MONAUTHOR) $(DCCDOC)
+	rm -f $@
+	MONITORS="$(MONITORS)" ; export MONITORS ; \
+	perl "$(DocPath)docxx/MonTable.pl" > $@
+
+$(IMAGES):
+	$(INSTALLDATA) $< $@
+
+#--- Executable dependencies -------------------------------------------------
+docdepend::
+	rm -f Makefile.docdepend
+	for m in $(DOCXXSRC) ; do \
+	    n=`echo $$m | sed -e "s|.*/||"` ; \
+	    echo "$(DOCPATH)/$$n/index.html:	$$m.hh" \
+		>> Makefile.docdepend ; \
+	    echo "	$(DOCPP) -d $(DOCPATH)/$$n -B $(DocPath)ligologo.gif $$^" \
+		>> Makefile.docdepend ; \
+	done
+	for m in $(HTMLSRC) ; do \
+	    n=`echo $$m | sed -e "s|.*/||"` ; \
+	    echo "$(DOCPATH)/$$n/$$n.html:	$$m.html" \
+		>> Makefile.docdepend ; \
+	    echo '	$(INSTALLDATA) $$^ $$@' >> Makefile.docdepend ; \
+	    echo "$(DOCPATH)/$$n/index.html:	" >> Makefile.docdepend ; \
+	    echo "	ln -s $$n.html \$$@" >> Makefile.docdepend ; \
+	done
+	for m in $(PDFSRC) ; do \
+	    n=`echo $$m | sed -e "s|.*/||"` ; \
+	    echo "$(DOCPATH)/$$n/$$n.pdf:	$$m.pdf" \
+		>> Makefile.docdepend ; \
+	    echo '	$(INSTALLDATA) $$^ $$@' >> Makefile.docdepend ; \
+	done
+ifneq "$(strip $(TEXSRC))" ""
+	for m in $(TEXSRC) ; do \
+	    n=`echo $$m | sed -e "s|.*/||"` ; \
+	    echo "$(DOCPATH)/$$n/$$n.html:	$$m.tex" \
+		>> Makefile.docdepend ; \
+	    echo '	$(LATEXTOHTML) <$$^ >$$@' >> Makefile.docdepend ; \
+	    echo "$(DOCPATH)/$$n/index.html:	" >> Makefile.docdepend ; \
+	    echo "	ln -s $$n.html \$$@" >> Makefile.docdepend ; \
+	done
+endif
+	for m in $(MONSRC) ; do \
+	    n=`echo $$m | sed -e "s|.*/||"` ; \
+	    if [ -f $${m}.synopsis ] ; then \
+		echo "$(DOCPATH)/$$n/$${n}.synopsis:	$${m}.synopsis" \
+		     >> Makefile.docdepend ; \
+		echo '	$(INSTALLDATA) $$^ $$@' >> Makefile.docdepend ; \
+	    fi ; \
+	    if [ -f $${m}.author ] ; then \
+		echo "$(DOCPATH)/$$n/$${n}.author:	$${m}.author" \
+		     >> Makefile.docdepend ; \
+		echo '	$(INSTALLDATA) $$^ $$@' >> Makefile.docdepend ; \
+	    fi ; \
+	    if [ -f $${m}.dccdoc ] ; then \
+		echo "$(DOCPATH)/$$n/$${n}.dccdoc:	$${m}.dccdoc" \
+		     >> Makefile.docdepend ; \
+		echo '	$(INSTALLDATA) $$^ $$@' >> Makefile.docdepend ; \
+	    fi ; \
+	done
+	for m in $(IMGSOURCE) ; do \
+	    echo "$(DOCPATH)/$$m:	$$m" >> Makefile.docdepend ; \
+	done
