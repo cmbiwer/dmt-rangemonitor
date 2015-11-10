@@ -8,10 +8,11 @@
 //
 ///////////////////////////////////////////////////////////////////////////
 
-
 #include "Integrand.hh"
 #include <math.h>
 
+#include <iostream>
+using namespace std;
 
 void integrand(FSpectrum& out, FSpectrum& psd)
 {
@@ -37,5 +38,38 @@ void integrand(FSpectrum& out, FSpectrum& psd)
 	//----- Send data back to FSpectrum object.
 	out.setData(nsteps + 1, data);
 	
+        delete[] data;
+}
+
+void integrand_waveform(FSpectrum& out, FSpectrum& psd, FSpectrum& waveform)
+{
+        //----- Set FSpectrum out equal to FSpectrum psd.
+        out = psd;
+
+        //----- Initialize items necessary to prepare the integrand.
+        int nsteps = out.getNStep();
+        double low_freq = out.getLowFreq();
+        double f_step = out.getFStep();
+        float *data = new float[nsteps + 1];
+
+        //----- Copy data from out object to data array.
+        out.getData(nsteps + 1, data);
+
+        //----- Get waveform values.
+        float* waveform_values = new float[waveform.getNStep() + 1];
+        waveform.getData(waveform.getNStep()+1, waveform_values);
+
+        //----- Loop to invert PSDed data.  Also divide by f^(7/3).
+//        for (int i = 0; i < (nsteps + 1); i++)
+//        {
+//                cerr << data[i] << " ";
+//                data[i] = pow(data[i],-1);
+//                data[i] *= waveform_values[i];
+//                cerr << data[i] << " " << waveform_values[i] << endl;
+//        }
+
+        //----- Send data back to FSpectrum object.
+        out.setData(nsteps + 1, data);
+
         delete[] data;
 }

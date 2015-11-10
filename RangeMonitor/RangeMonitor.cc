@@ -21,6 +21,7 @@
 #include <stdlib.h>
 #include <iomanip>
 #include <sstream>
+#include <vector>
 
 //----- Include LIGO-specific headers
 #include "Dacc.hh"
@@ -248,7 +249,6 @@ SenseMonitor::SenseMonitor(int argc, const char *argv[])
       cout << "Returned from VerifyParameters with fatal_error = " 
 	   << fatal_error << endl;
     }
-
 
     //---------- Finish setup of monitor.
     if (!fatal_error) {
@@ -628,6 +628,28 @@ SenseMonitor::ProcessData(void) {
 	}
 	ts_asq = mDecimate(raw_asq);
 
+        FSpectrum waveform;
+
+        //--------- Read waveform file that contains the frequency and
+        //          amplitude series to use in the integrand.
+        if (not Run_Par.waveform_file_name.empty())
+        {
+//            cerr << "Reading " << Run_Par.waveform_file_name << endl;
+            waveform = ReadWaveform(Run_Par.waveform_file_name, PSDed_data.getLowFreq(), PSDed_data.getFStep());
+
+            double low_freq = waveform.getLowFreq();
+            double df = waveform.getFStep();
+
+            //---------- Get values of waveform.
+//            float* waveform_values = new float[waveform.getNStep() + 1];
+//            waveform.getData(waveform.getNStep()+1, waveform_values);
+//            for(size_t i = 0; i < waveform.getNStep()+1; ++i)
+//            {
+//                cerr << "LINE" << i << " " << low_freq + (i * df) << " " << waveform_values[i] << endl;
+//            }
+
+        }
+
 	//---------- Things to do once only.
     	if (NStride == 0) {
 
@@ -662,35 +684,42 @@ SenseMonitor::ProcessData(void) {
 					tserieslength, calvalues);
             string DMTViewer_name = DMTView_Channel("EFFECTIVE RANGE (MPC)");
 
-            serveData(DMTViewer_name.c_str(), history_range);
+//            serveData(DMTViewer_name.c_str(), history_range);
 
             //----- Initialize and publish calibration-line amplitude history.
             history_ampl = new TSeries(history_start, Run_Par.T, 
 				       tserieslength, amplvalues);
             DMTViewer_name = DMTView_Channel("CAL LINE AMPL (ASQ)");
-            serveData(DMTViewer_name.c_str(), history_ampl);
+//            serveData(DMTViewer_name.c_str(), history_ampl);
 
             //----- Initialize and publish alpha parameter history.
             history_alpha = new TSeries(history_start, Run_Par.T,
 					tserieslength, alphavalues);
             DMTViewer_name = DMTView_Channel("CAL CAV FAC (ALPHA)");
-            serveData(DMTViewer_name.c_str(), history_alpha);
+//            serveData(DMTViewer_name.c_str(), history_alpha);
 
             //----- Initialize and publish beta parameter history.
             history_alphabeta = new TSeries(history_start, Run_Par.T, 
 					    tserieslength, alphabetavalues);
             DMTViewer_name = DMTView_Channel("CAL OLOOP FAC (ALPHAxBETA)");
-            serveData(DMTViewer_name.c_str(), history_alphabeta);
+//            serveData(DMTViewer_name.c_str(), history_alphabeta);
 
 	    //---------- Make fake strain_noise_ampl to initialize DMTViewer.
 	    strain_noise_ampl = PSDed_data;
 	    DMTViewer_name = DMTView_Channel("CALIBRATED NOISE SPECTRUM");
-	    serveData(DMTViewer_name.c_str(), &strain_noise_ampl);
+//	    serveData(DMTViewer_name.c_str(), &strain_noise_ampl);
 
 	    //---------- Generate fake f_7_3 for DMTViewer initialization. 
-	    integrand(f_7_3, PSDed_data);
+            if ( Run_Par.waveform_file_name.empty() )
+            {
+    	        integrand(f_7_3, PSDed_data);
+            }
+            else
+            {
+                integrand_waveform(f_7_3, PSDed_data, waveform);
+            }
 	    DMTViewer_name = DMTView_Channel("RANGE INTEGRAND (ARB UNITS)");
-	    serveData(DMTViewer_name.c_str(), &f_7_3);
+//	    serveData(DMTViewer_name.c_str(), &f_7_3);
         }
 
 	//---------- Check that IFO is locked before proceeding.
@@ -717,11 +746,29 @@ SenseMonitor::ProcessData(void) {
 	    R_Dat.ampl = mCalibrate->GetLineAmplitudeASQ();
 
 	    //---------- Compute integrand of range integral ([PSD*f^7/3]^-1).
-	    integrand(f_7_3, PSDed_data);
+            if ( Run_Par.waveform_file_name.empty() )
+            {
+                integrand(f_7_3, PSDed_data);
+            }
+            else
+            {
+                integrand_waveform(f_7_3, PSDed_data, waveform);
+            }
 
 	    //---------- Calculate distance at which detector is sensitive
             R_Dat.range = integrate(f_7_3, Run_Par.l_freq, Run_Par.h_freq);
-	    R_Dat.range = range(R_Dat.range, (Run_Par.mChannel).c_str());
+            if (Run_Par.waveform_file_name.empty())
+            {
+	        R_Dat.range = range(R_Dat.range, (Run_Par.mChannel).c_str());
+            }
+
+            //---------- Get values of f_7_3.
+//            float* f_7_3_values = new float[f_7_3.getNStep() + 1];
+//            f_7_3.getData(f_7_3.getNStep()+1, f_7_3_values);
+//            for(size_t i = 0; i < f_7_3.getNStep()+1; ++i)
+//            {
+//                cerr << "LINE" << i << " " << 0 + (i * 0.25) << " " << f_7_3_values[i] << endl;
+//            }
 
 	    //---------- Compute strain_noise_ampl from PSDed_data, for DMTViewer.
             //           This code effectively duplicates the Calibrated PSD dump code.
@@ -1619,6 +1666,8 @@ SenseMonitor::Configure(int argc, const char *argv[])
  	        mOutput.error_log = false;
 	    } else if(argi == "-trend") {
 	        mOutput.trend = true;
+            } else if (argi == "-waveformfile") {
+                Run_Par.waveform_file_name = argv[++i];
   	    } else if(argi == "-window") {
                 Run_Par.window_name = argv[++i];
   	        for(unsigned int j=0; j < (Run_Par.window_name).length(); j++) {
@@ -1784,6 +1833,36 @@ SenseMonitor::VerifyParameters(Parameter& Run_Par, bool& fatal_error)
     }
 }
 
+//====================================== Read waveform file.
+//std::string
+FSpectrum
+SenseMonitor::ReadWaveform(const std::string& filename, double low_freq, double df) const {
+
+    //---------- Initializations.
+    FSpectrum waveform;
+    vector <float> freq;
+    vector <float> val;
+
+    //---------- Read columns.
+    ifstream in(filename);
+    while (!in.eof())
+    {
+        float tmp_freq, tmp_val;
+        in >> tmp_freq >> tmp_val;
+        freq.push_back(tmp_freq);
+        val.push_back(tmp_val);
+    }
+
+    //---------- Set low-frequency cutoff and frequency step.
+//    double low_freq = freq[0];
+//    double df = freq[1] - freq[0];
+    waveform.clear(low_freq, df);
+
+    //---------- Set the waveform values.
+    waveform.setData(val.size(), val.data());
+
+    return waveform;
+};
 
 //====================================== Write current range, etc to specified
 //                                       output stream.

@@ -97,6 +97,9 @@ struct Parameter
     /// Monitor name sent to MonServer.
     std::string MonitorName;
 
+    /// Name of waveform file holding the frequency and amplitude.
+    std::string waveform_file_name;
+
     /// Enable segment writing
     bool write_segs;
 
@@ -338,6 +341,10 @@ class SenseMonitor
       * @param out Output stream to which to write information. 
       */
     virtual void ReportResults(std::ostream& out, const Time& t, Parameter& Run_Par);
+
+    /** Read the waveform file.
+      */
+    FSpectrum ReadWaveform(const std::string& filename, double f_low, double df) const;
 
     /** Act on SIGUSR1 signal (reread configuration file).
       * @memo Act on SIGUSR1 signal.

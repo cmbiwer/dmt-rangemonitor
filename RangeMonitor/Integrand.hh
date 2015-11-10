@@ -28,5 +28,6 @@
   * @param psd Input power spectrum.
   */ 
 void integrand(FSpectrum& out, FSpectrum& psd);
+void integrand_waveform(FSpectrum& out, FSpectrum& psd, FSpectrum& waveform);
 
 #endif     //  Integrand_HH
