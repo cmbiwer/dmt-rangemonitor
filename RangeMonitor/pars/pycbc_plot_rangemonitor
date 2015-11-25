@@ -1,0 +1,24 @@
+from pycbc import DYN_RANGE_FAC
+import numpy
+import h5py
+from pycbc.types import load_frequencyseries
+import matplotlib.pyplot as plt
+
+spectrum_waveform = load_frequencyseries('waveform_f_7_3_rangemonitor.txt')
+spectrum_psd = load_frequencyseries('psd_rangemonitor.txt')
+
+spectrum_waveform_pycbc = load_frequencyseries('test2.txt')
+spectrum_psd_pycbc = load_frequencyseries('psd_pycbc.txt')
+
+plt.loglog(spectrum_psd.sample_frequencies, spectrum_psd.numpy(), label='SenseMonitor noise curve')
+plt.loglog(spectrum_waveform.sample_frequencies, spectrum_waveform.numpy(), label='f^(-7/3) waveform')
+
+plt.loglog(spectrum_psd_pycbc.sample_frequencies, spectrum_psd_pycbc.numpy(), label='pycbc noise curve')
+plt.loglog(spectrum_waveform_pycbc.sample_frequencies, spectrum_waveform_pycbc.numpy(), label='pycbc waveform')
+
+plt.xlim(10,500)
+plt.ylabel('PSD')
+plt.xlabel('frequency (Hz)')
+plt.ylim(1e20,1e24)
+plt.legend()
+plt.savefig('/home/cbiwer/public_html/tmp/test2.png')

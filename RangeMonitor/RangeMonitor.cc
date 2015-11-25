@@ -761,6 +761,10 @@ SenseMonitor::ProcessData(void) {
             {
 	        R_Dat.range = range(R_Dat.range, (Run_Par.mChannel).c_str());
             }
+            else
+            {
+                R_Dat.range = range_waveform(R_Dat.range, (Run_Par.mChannel).c_str());
+            }
 
             //---------- Get values of f_7_3.
 //            float* f_7_3_values = new float[f_7_3.getNStep() + 1];

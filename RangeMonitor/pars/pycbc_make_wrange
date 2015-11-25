@@ -1,0 +1,99 @@
+#! /usr/bin/python
+
+import h5py
+import numpy
+from pycbc import DYN_RANGE_FAC
+from pycbc.filter import get_cutoff_indices, sigma
+from pycbc.psd import interpolate
+from pycbc.types import load_frequencyseries, FrequencySeries
+from pycbc.types.array import zeros
+from pycbc.waveform import get_waveform_filter
+
+# initializations
+mass1 = 1.4
+mass2 = 1.4
+distance = 1.0 / DYN_RANGE_FAC
+approximant = 'SPAtmplt'
+canonical_snr = 8.0
+fhigh = None
+lfc = 0
+
+# path to HDF PSD file
+#psd_file = '/home/cbiwer/src/L1-CALCULATE_PSD_PART9-1129383017-1371600.hdf'
+#psd_file = '/home/cbiwer/src/gdssvn/trunk/Monitors/RangeMonitor/pars/psd.txt'
+psd_file = '/home/cbiwer/src/gdssvn/trunk/Monitors/RangeMonitor/pars/psd_rangemonitor.txt'
+
+# get low-frequency cutoff for PSD
+#f = h5py.File(psd_file, 'r')
+#ifo = f.keys()[0]
+#flow = f.attrs['low_frequency_cutoff']
+flow = 0.0
+
+# get IFO for PSD
+ifo = 'L1'
+i = 0
+name = ifo + '/psds/' + str(i)
+
+# get PSD
+psd = load_frequencyseries(psd_file, group=name)
+psd = psd.astype(numpy.complex128) #* DYN_RANGE_FAC**2
+
+# get filter
+delta_t = 1.0 / ((len(psd) - 1) * 2 * psd.delta_f)
+out = zeros(len(psd), dtype=numpy.complex64)
+htilde = get_waveform_filter(out, 
+                         mass1=mass1, mass2=mass2,
+                         approximant=approximant,
+                         f_lower=lfc, delta_f=psd.delta_f,
+                         delta_t=delta_t, 
+                         distance = distance)
+htilde = htilde.astype(numpy.complex128) * (1e9 * 4000)
+
+htilde.save('waveform_pycbc.txt')
+psd.save('psd_pycbc.txt')
+
+# calculate the inspiral range
+sigma_value = sigma(htilde, psd=psd, low_frequency_cutoff=flow)
+horizon_distance = sigma_value / canonical_snr 
+inspiral_range = horizon_distance / 2.26
+print inspiral_range
+
+# get the square of the filter
+#htilde_mag = htilde.data.conj() * htilde.data
+#htilde_mag = htilde_mag.real
+
+# get weighted inner as an array
+N = (len(htilde)-1) * 2 
+kmin, kmax = get_cutoff_indices(flow, fhigh, htilde.delta_f, N) 
+ht = htilde[kmin:kmax]
+sq = ht.data.conj() * ht.data
+sq = sq.real
+
+# make it a FrequencySeries
+sq_fs = FrequencySeries(sq, delta_f=htilde.delta_f)
+sq_fs = interpolate(sq_fs, 0.25)
+
+# constants
+SOLARMASS = 1.989e30
+NEWTONS_G = 6.67e-11
+C = 299792458
+METER_PER_MEGAPARSEC = 3.086E22
+RHO_o = 8
+PI = 3.141592654
+ARM_LENGTH_NM = 4e12
+
+# write to file
+arr = sq_fs.astype(numpy.float64) / (8 * 2.26)**2
+( arr ).save('test2.txt')
+integrand = arr / psd[kmin:kmax].data
+integrand = FrequencySeries(integrand, delta_f=htilde.delta_f)
+( integrand ).save('testintegrand.txt')
+
+# get inspiral range
+norm = 4.0 * htilde.delta_f
+range = arr / psd[kmin:kmax].data
+range = numpy.sum(range)
+range = range.real * norm
+print numpy.sqrt(range)
+
+

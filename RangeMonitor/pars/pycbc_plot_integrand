@@ -1,0 +1,20 @@
+from pycbc import DYN_RANGE_FAC
+import numpy
+import h5py
+from pycbc.types import load_frequencyseries
+import matplotlib.pyplot as plt
+
+spectrum_integrand = load_frequencyseries('integrand_rangemonitor.txt')
+spectrum_integrand_f_7_3 = load_frequencyseries('integrand_f_7_3_rangemonitor.txt')
+spectrum_integrand_pycbc = load_frequencyseries('testintegrand.txt')
+
+plt.loglog(spectrum_integrand.sample_frequencies, spectrum_integrand.numpy(), label='SenseMonitor integrand')
+plt.loglog(spectrum_integrand_f_7_3.sample_frequencies, spectrum_integrand_f_7_3.numpy(), label='SenseMonitor integrand f^(-7/3)')
+plt.loglog(spectrum_integrand_pycbc.sample_frequencies, spectrum_integrand_pycbc.numpy(), label='pycbc integrand')
+
+plt.xlim(10,500)
+plt.ylabel('PSD')
+plt.xlabel('frequency (Hz)')
+plt.ylim(1e-6,1e2)
+plt.legend(loc='lower center')
+plt.savefig('/home/cbiwer/public_html/tmp/test2.png')

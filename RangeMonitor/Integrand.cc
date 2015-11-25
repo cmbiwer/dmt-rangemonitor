@@ -12,6 +12,7 @@
 #include <math.h>
 
 #include <iostream>
+#include <fstream>
 using namespace std;
 
 void integrand(FSpectrum& out, FSpectrum& psd)
@@ -59,14 +60,32 @@ void integrand_waveform(FSpectrum& out, FSpectrum& psd, FSpectrum& waveform)
         float* waveform_values = new float[waveform.getNStep() + 1];
         waveform.getData(waveform.getNStep()+1, waveform_values);
 
+        double dyn_range_fac = 5.9029581035870565e+20;
+
+        ofstream myfile;
+        myfile.open("waveform_rangemonitor.txt");
+        ofstream psdfile;
+        psdfile.open("psd_rangemonitor.txt");
+        ofstream integrandfile;
+        integrandfile.open("integrand_rangemonitor.txt");
+
         //----- Loop to invert PSDed data.  Also divide by f^(7/3).
-//        for (int i = 0; i < (nsteps + 1); i++)
-//        {
+        for (int i = 0; i < (nsteps + 1); i++)
+        {
+//                data[i] = data[i] * pow(1e-10 / 4000, 2);
+                myfile << i*0.25 << " " << waveform_values[i] << endl;
+                data[i] *= pow(dyn_range_fac, 2);
+                psdfile << i*0.25 << " " << data[i] << endl;
+                data[i] = pow(data[i],-1);
 //                cerr << data[i] << " ";
-//                data[i] = pow(data[i],-1);
-//                data[i] *= waveform_values[i];
-//                cerr << data[i] << " " << waveform_values[i] << endl;
-//        }
+                data[i] *= waveform_values[i];
+//                cerr << waveform_values[i] << " " << data[i] << endl;
+                integrandfile << i*0.25 << " " << data[i] << endl;
+        }
+
+        myfile.close();
+        psdfile.close();
+        integrandfile.close();
 
         //----- Send data back to FSpectrum object.
         out.setData(nsteps + 1, data);

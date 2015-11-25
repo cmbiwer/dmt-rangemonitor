@@ -1,0 +1,43 @@
+#! /usr/bin/python
+
+import h5py
+import numpy
+import matplotlib.pyplot as plt
+from pycbc import DYN_RANGE_FAC
+from pycbc.filter import get_cutoff_indices, sigma
+from pycbc.types import load_frequencyseries
+from pycbc.types.array import zeros
+from pycbc.waveform import get_waveform_filter
+
+# initializations
+mass1 =1.4
+mass2 = 1.4
+distance = 1.0 #/ DYN_RANGE_FAC
+approximant = 'SPAtmplt'
+canonical_snr = 8.0
+fhigh = None
+
+# path to HDF PSD file
+psd_file = '/home/cbiwer/src/L1-CALCULATE_PSD_PART9-1129383017-1371600.hdf'
+
+# get low-frequency cutoff for PSD
+f = h5py.File(psd_file, 'r')
+ifo = f.keys()[0]
+flow = f.attrs['low_frequency_cutoff']
+
+# get IFO for PSD
+ifo = 'L1'
+i = 0
+name = ifo + '/psds/' + str(i)
+
+# get PSD
+psd = load_frequencyseries(psd_file, group=name)
+psd = psd.astype(numpy.complex128)
+psd = psd / DYN_RANGE_FAC**2
+
+# plot
+plt.loglog(psd.sample_frequencies, psd.numpy())
+plt.xlim(20,1000)
+plt.ylabel('PSD')
+plt.xlabel('frequency (Hz)')
+plt.savefig('/home/cbiwer/public_html/tmp/test2_pycbcpsd.png')

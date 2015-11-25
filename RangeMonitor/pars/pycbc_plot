@@ -1,0 +1,46 @@
+from pycbc import DYN_RANGE_FAC
+import numpy
+import h5py
+from pycbc.types import load_frequencyseries
+import matplotlib.pyplot as plt
+
+spectrum_f_7_3 = load_frequencyseries('test_f_7_3.txt')
+
+spectrum_waveform = load_frequencyseries('waveform_rangemonitor.txt')
+
+spectrum_psd = load_frequencyseries('psd_rangemonitor.txt')
+spectrum_psdfac = load_frequencyseries('psd_rangemonitor.txt') * (1e9 * 4000)**2 
+
+# path to HDF PSD file
+psd_file = '/home/cbiwer/src/L1-CALCULATE_PSD_PART9-1129383017-1371600.hdf'
+
+# get low-frequency cutoff for PSD
+f = h5py.File(psd_file, 'r')
+ifo = f.keys()[0]
+flow = f.attrs['low_frequency_cutoff']
+
+# get IFO for PSD
+ifo = 'L1'
+i = 0
+name = ifo + '/psds/' + str(i)
+
+# get PSD
+psd = load_frequencyseries(psd_file, group=name)
+psd = psd.astype(numpy.complex128)
+psd = psd / DYN_RANGE_FAC**2 * (1e9 * 4000)**2
+
+spectrum = load_frequencyseries('test2.txt')
+
+plt.loglog(spectrum_psd.sample_frequencies, spectrum_psd.numpy(), label='SenseMonitor noise curve')
+
+plt.loglog(psd.sample_frequencies, psd.numpy(), label='pycbc noise curve')
+#plt.loglog(spectrum_psdfac.sample_frequencies, spectrum_psdfac.numpy(), label='fac')
+
+plt.loglog(spectrum.sample_frequencies, spectrum.numpy(), label='lalsimulation waveform')
+plt.loglog(spectrum_f_7_3.sample_frequencies, spectrum_f_7_3.numpy(), hold=True, label='f^(-7/3) waveform')
+plt.xlim(10,500)
+plt.ylabel('PSD')
+plt.xlabel('frequency (Hz)')
+plt.legend()
+plt.ylim(1e-24, 1e-13)
+plt.savefig('/home/cbiwer/public_html/tmp/test2.png')
